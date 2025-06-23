@@ -31,6 +31,7 @@ export const signupService = async ({ name, email, password, role = 'user' }) =>
 export const loginService = async ({ email, password }) => {
   const user = await findUserByEmail(email);
   if (!user) throw { status: 400, message: 'Invalid credentials' };
+  
 
   const match = await bcrypt.compare(password, user.password);
   if (!match) throw { status: 400, message: 'Invalid credentials' };
