@@ -1,29 +1,25 @@
-import prisma from "../config/prisma.js";
+import { prisma } from '../config/prisma.js';
 
+export const findTeacherById = async (id) => {
+  return await prisma.teacher.findUnique({
+    where: { id },
+  });
+};
 
-export const createTeacher = async (
-  schoolId,
-  name,
-  email,
-  phone,
-  role,
-  subjects,
-  sections
-) => {
-  return await prisma.teacher.create({
-    data: {
-      schoolId,
-      name,
-      email,
-      phone,
-      role,
-      subjects,
-      sections,
-    },
+export const findTeacherByEmail = async (email) => {
+  return await prisma.teacher.findUnique({
+    where: { email },
+  });
+};
+
+export const listSchoolTeachers = async (schoolId) => {
+  return await prisma.teacher.findMany({
+    where: { schoolId },
     select: {
       id: true,
       name: true,
       email: true,
+      phone: true,
       role: true,
       subjects: true,
       sections: true,
@@ -31,26 +27,16 @@ export const createTeacher = async (
   });
 };
 
-export const getTeacherById = async (id) => {
-  return await prisma.teacher.findUnique({
-    where: { id },
-    include: {
-      school: true,
-      setGoals: true,
-    },
+export const createTeacher = async (teacherData) => {
+  return await prisma.teacher.create({
+    data: teacherData,
   });
 };
 
-export const updateTeacher = async (id, updateData) => {
+export const updateTeacher = async (id, teacherData) => {
   return await prisma.teacher.update({
     where: { id },
-    data: updateData,
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-    },
+    data: teacherData,
   });
 };
 
@@ -60,15 +46,87 @@ export const deleteTeacher = async (id) => {
   });
 };
 
+export const getTeacherWithRelations = async (id) => {
+  return await prisma.teacher.findUnique({
+    where: { id },
+    include: {
+      school: true,
+      markedAttendances: true,
+      enteredMarks: true,
+      setGoals: true,
+    },
+  });
+};
 
-export const listSchoolTeachers = async (schoolId) => {
+export const getTeacherDashboardData = async (teacherId) => {
+  return await prisma.teacher.findUnique({
+    where: { id: teacherId },
+    select: {
+      sections: true,
+      markedAttendances: {
+        where: {
+          date: new Date().toISOString().split('T')[0],
+        },
+      },
+      enteredMarks: {
+        where: {
+          date: {
+            gte: new Date(new Date().setDate(new Date().getDate() - 7)),
+          },
+        },
+      },
+      setGoals: {
+        where: {
+          status: 'pending_review',
+        },
+      },
+    },
+  });
+};
+
+export const getTeachersBySection = async (schoolId, section) => {
   return await prisma.teacher.findMany({
-    where: { schoolId },
+    where: {
+      schoolId,
+      sections: {
+        has: section,
+      },
+    },
     select: {
       id: true,
       name: true,
-      email: true,
-      role: true,
+      subjects: true,
+    },
+  });
+};
+
+export const getTeacherClassStudents = async (teacherId, className, section) => {
+  return await prisma.student.findMany({
+    where: {
+      class: className,
+      section,
+      school: {
+        teachers: {
+          some: { id: teacherId },
+        },
+      },
+    },
+    include: {
+      marks: {
+        where: {
+          enteredById: teacherId,
+        },
+        take: 5,
+        orderBy: { date: 'desc' },
+      },
+      attendances: {
+        where: {
+          markedById: teacherId,
+          date: {
+            gte: new Date(new Date().setMonth(new Date().getMonth() - 1)),
+          },
+        },
+      },
     },
   });
 };
