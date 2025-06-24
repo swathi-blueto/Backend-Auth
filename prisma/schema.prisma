@@ -1,12 +1,7 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// schema.prisma
 
 generator client {
   provider = "prisma-client-js"
-  
 }
 
 datasource db {
@@ -14,14 +9,175 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model School {
+  id      String   @id @default(uuid())
+  name    String
+  address String?
+  region  String?
+  
+  teachers     Teacher[]
+  students     Student[]
+  schoolAdmins SchoolAdmin[]
+  
+  @@map("schools")
+}
+
+model Teacher {
+  id       String   @id @default(uuid())
+  school   School   @relation(fields: [schoolId], references: [id])
+  schoolId String
+  name     String
+  email    String   @unique
+  phone    String?
+  role     String   @default("subject_teacher") 
+  subjects String[]
+  sections String[]
+  
+  markedAttendances Attendance[]
+  enteredMarks      Mark[]
+  setGoals          Goal[]
+  
+  @@map("teachers")
+}
+
+model Student {
+  id       String   @id @default(uuid())
+  school   School   @relation(fields: [schoolId], references: [id])
+  schoolId String
+  name     String
+  dob      DateTime?
+  gender   String?
+  photoUrl String?
+  class    String?
+  section  String?
+  
+  parent   Parent?  @relation(fields: [parentId], references: [id])
+  parentId String?
+  
+  attendances   Attendance[]
+  marks         Mark[]
+  goals         Goal[]
+  healthRecords Health[]
+  achievements  Achievement[]
+  aiInsights    AiInsight[]
+  
+  @@map("students")
+}
+
+model Parent {
+  id    String   @id @default(uuid())
+  name  String
+  phone String?
+  email String?
+  
+  students Student[]
+  
+  @@map("parents")
+}
+
+model Attendance {
+  student   Student @relation(fields: [studentId], references: [id])
+  studentId String
+  date      DateTime @db.Date
+  status    String   @db.Char(1) 
+  
+  markedBy   Teacher @relation(fields: [markedById], references: [id])
+  markedById String
+  
+  @@id([studentId, date])
+  @@map("attendance")
+}
+
+model Mark {
+  id           String   @id @default(uuid())
+  student      Student  @relation(fields: [studentId], references: [id])
+  studentId    String
+  subject      String
+  examName     String
+  marksObtained Int
+  totalMarks   Int
+  date         DateTime @db.Date
+  
+  enteredBy   Teacher @relation(fields: [enteredById], references: [id])
+  enteredById String
+  
+  @@map("marks")
+}
+
+model Goal {
+  id        String   @id @default(uuid())
+  student   Student  @relation(fields: [studentId], references: [id])
+  studentId String
+  type      String   
+  goalText  String
+  status    String   @default("pending") 
+  
+  setBy     Teacher  @relation(fields: [setById], references: [id])
+  setById   String
+  
+  createdAt DateTime @default(now())
+  
+  @@map("goals")
+}
+
+model Health {
+  id         String   @id @default(uuid())
+  student    Student  @relation(fields: [studentId], references: [id])
+  studentId  String
+  heightCm   Int?
+  weightKg   Int?
+  bmi        Float?
+  visitDate  DateTime @db.Date
+  remarks    String?
+  
+  @@map("health")
+}
+
+model Achievement {
+  id        String   @id @default(uuid())
+  student   Student  @relation(fields: [studentId], references: [id])
+  studentId String
+  title     String
+  type      String?
+  eventName String?
+  level     String?
+  date      DateTime @db.Date
+  fileUrl   String?
+  
+  @@map("achievements")
+}
+
+model AiInsight {
+  id           String   @id @default(uuid())
+  student      Student  @relation(fields: [studentId], references: [id])
+  studentId    String
+  insightType  String
+  message      String
+  createdAt    DateTime @default(now())
+  
+  @@map("ai_insights")
+}
+
+model SchoolAdmin {
+  id       String   @id @default(uuid())
+  name     String
+  email    String   @unique
+  phone    String?
+  role     String   
+  
+  school   School   @relation(fields: [schoolId], references: [id])
+  schoolId String
+  
+  @@map("school_admins")
+}
 
 model User {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(uuid())
   name      String
   email     String   @unique
   password  String
   role      String   @default("user")
   createdAt DateTime @default(now())
-
-  @@map("users") 
+  
+  @@map("users")
 }

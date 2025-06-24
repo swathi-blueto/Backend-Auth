@@ -1,15 +1,17 @@
-
-import { signupService, loginService, logoutService } from "../services/authService.js";
+import {
+  signupService,
+  loginService,
+  logoutService,
+} from "../services/authService.js";
 
 export const signup = async (req, res) => {
   try {
     const result = await signupService(req.body);
 
-    
     res.cookie("token_cookie", result.token, {
       httpOnly: true,
       secure: true,
-      sameSite: 'None',
+      sameSite: "None",
       maxAge: 15 * 60 * 1000,
     });
 
@@ -26,7 +28,7 @@ export const login = async (req, res) => {
     res.cookie("token_cookie", result.token, {
       httpOnly: true,
       secure: true,
-      sameSite: 'None',
+      sameSite: "None",
       maxAge: 15 * 60 * 1000,
     });
 
@@ -36,20 +38,17 @@ export const login = async (req, res) => {
   }
 };
 
-
 export const logout = async (req, res) => {
   try {
-
-   
     res.clearCookie("token_cookie", {
       httpOnly: true,
       secure: true,
-      sameSite: 'None'
+      sameSite: "None",
     });
 
-    const result = await logoutService(); 
+    const result = await logoutService();
     res.status(200).json(result);
   } catch (err) {
-    res.status(500).json({ message: 'Logout failed' });
+    res.status(500).json({ message: "Logout failed" });
   }
 };
