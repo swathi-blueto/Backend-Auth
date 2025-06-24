@@ -58,31 +58,6 @@ export const getTeacherWithRelations = async (id) => {
   });
 };
 
-export const getTeacherDashboardData = async (teacherId) => {
-  return await prisma.teacher.findUnique({
-    where: { id: teacherId },
-    select: {
-      sections: true,
-      markedAttendances: {
-        where: {
-          date: new Date().toISOString().split('T')[0],
-        },
-      },
-      enteredMarks: {
-        where: {
-          date: {
-            gte: new Date(new Date().setDate(new Date().getDate() - 7)),
-          },
-        },
-      },
-      setGoals: {
-        where: {
-          status: 'pending_review',
-        },
-      },
-    },
-  });
-};
 
 export const getTeachersBySection = async (schoolId, section) => {
   return await prisma.teacher.findMany({
