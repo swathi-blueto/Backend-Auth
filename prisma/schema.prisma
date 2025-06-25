@@ -1,5 +1,3 @@
-// schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,114 +7,225 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  HALF_DAY
+  ON_LEAVE
+}
+
+enum LeaveType {
+  CASUAL
+  SICK
+  EMERGENCY
+  OTHER
+}
+
+enum GoalStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum AchievementCategory {
+  ACADEMIC
+  SPORTS
+  ARTS
+  MUSIC
+  OTHER
+}
+
+enum TeacherRole {
+  SUBJECT_TEACHER
+  CLASS_TEACHER
+  PRINCIPAL
+  VICE_PRINCIPAL
+  ADMINISTRATOR
+}
+
 model School {
-  id      String   @id @default(uuid())
-  name    String
-  address String?
-  region  String?
-  
+  id        String       @id @default(uuid())
+  name      String
+  address   String?
+  region    String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
   teachers     Teacher[]
   students     Student[]
   schoolAdmins SchoolAdmin[]
+  exams        Exam[]
   
   @@map("schools")
 }
 
 model Teacher {
-  id       String   @id @default(uuid())
-  school   School   @relation(fields: [schoolId], references: [id])
-  schoolId String
-  name     String
-  email    String   @unique
-  phone    String?
-  role     String   @default("subject_teacher") 
-  subjects String[]
-  sections String[]
-  
-  markedAttendances Attendance[]
-  enteredMarks      Mark[]
-  setGoals          Goal[]
-  
+  id                 String          @id @default(uuid())
+  school             School          @relation(fields: [schoolId], references: [id])
+  schoolId           String
+  name               String
+  email              String          @unique
+  phone              String?
+  dateOfJoining      DateTime?       @db.Date
+  isActive           Boolean         @default(true)
+  role               TeacherRole     @default(SUBJECT_TEACHER)
+  qualifications     String?
+  experience         String?
+  photoUrl           String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  markedAttendances  Attendance[]
+  enteredMarks       Mark[]
+  setGoals           Goal[]
+  uploadedAssignments Assignment[]
+  attendances        TeacherAttendance[]
+  leaveApplications  LeaveApplication[]
+  approvedLeaveApplications LeaveApplication[] @relation("ApprovedLeaves")
+
   @@map("teachers")
 }
 
 model Student {
-  id       String   @id @default(uuid())
-  school   School   @relation(fields: [schoolId], references: [id])
-  schoolId String
-  name     String
-  dob      DateTime?
-  gender   String?
-  photoUrl String?
-  class    String?
-  section  String?
-  
-  parent   Parent?  @relation(fields: [parentId], references: [id])
-  parentId String?
-  
-  attendances   Attendance[]
-  marks         Mark[]
-  goals         Goal[]
-  healthRecords Health[]
-  achievements  Achievement[]
-  aiInsights    AiInsight[]
-  
+  id                 String     @id @default(uuid())
+  school             School     @relation(fields: [schoolId], references: [id])
+  schoolId           String
+  admissionNumber    String     @unique
+  admissionDate      DateTime   @default(now()) @db.Date
+  name               String
+  dob                DateTime?
+  gender             String?
+  photoUrl           String?
+  class              String?
+  section            String?
+  currentAcademicYear String
+  bloodGroup         String?
+  status           String   @default("active")
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  parent             Parent?    @relation(fields: [parentId], references: [id])
+  parentId           String?
+
+  attendances        Attendance[]
+  marks              Mark[]
+  goals              Goal[]
+  healthRecords      Health[]
+  achievements       Achievement[]
+  aiInsights         AiInsight[]
+  submissions        Submission[]
+
   @@map("students")
+  @@unique([admissionNumber, name])
 }
 
 model Parent {
-  id    String   @id @default(uuid())
-  name  String
-  phone String?
-  email String?
-  
-  students Student[]
-  
+  id        String    @id @default(uuid())
+  name      String
+  phone     String?
+  email     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  students  Student[]
+
   @@map("parents")
 }
 
 model Attendance {
-  student   Student @relation(fields: [studentId], references: [id])
-  studentId String
-  date      DateTime @db.Date
-  status    String   @db.Char(1) 
-  
-  markedBy   Teacher @relation(fields: [markedById], references: [id])
-  markedById String
-  
+  student     Student         @relation(fields: [studentId], references: [id])
+  studentId   String
+  date        DateTime        @db.Date
+  status      AttendanceStatus @default(PRESENT)
+
+  markedBy    Teacher         @relation(fields: [markedById], references: [id])
+  markedById  String
+  createdAt   DateTime        @default(now())
+
   @@id([studentId, date])
   @@map("attendance")
 }
 
+model TeacherAttendance {
+  id        String          @id @default(uuid())
+  teacher   Teacher         @relation(fields: [teacherId], references: [id])
+  teacherId String
+  date      DateTime        @db.Date
+  status    AttendanceStatus
+  checkIn   DateTime?
+  checkOut  DateTime?
+  createdAt DateTime        @default(now())
+
+  @@unique([teacherId, date])
+  @@map("teacher_attendance")
+}
+
+model LeaveApplication {
+  id           String       @id @default(uuid())
+  teacher      Teacher      @relation(fields: [teacherId], references: [id])
+  teacherId    String
+  approvedByTeacher Teacher? @relation("ApprovedLeaves", fields: [approvedByTeacherId], references: [id])
+  approvedByTeacherId String?
+  type         LeaveType
+  startDate    DateTime     @db.Date
+  endDate      DateTime     @db.Date
+  reason       String
+  status       String       @default("pending")
+  approvedBy   SchoolAdmin? @relation(fields: [approvedById], references: [id], name: "ApprovedByAdmin")
+  approvedById String?
+  createdAt    DateTime     @default(now())
+
+  @@map("leave_applications")
+}
+
+model SchoolAdmin {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  role      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school    School   @relation(fields: [schoolId], references: [id])
+  schoolId  String
+
+  approvedLeaveApplications LeaveApplication[] @relation("ApprovedByAdmin")
+
+  @@map("school_admins")
+}
+
 model Mark {
-  id           String   @id @default(uuid())
-  student      Student  @relation(fields: [studentId], references: [id])
-  studentId    String
-  subject      String
-  examName     String
+  id            String   @id @default(uuid())
+  student       Student  @relation(fields: [studentId], references: [id])
+  studentId     String
+  subject       String
+  examName      String
   marksObtained Int
-  totalMarks   Int
-  date         DateTime @db.Date
-  
-  enteredBy   Teacher @relation(fields: [enteredById], references: [id])
-  enteredById String
-  
+  totalMarks    Int
+  date          DateTime @db.Date
+  createdAt     DateTime @default(now())
+
+  enteredBy     Teacher  @relation(fields: [enteredById], references: [id])
+  enteredById   String
+
   @@map("marks")
 }
 
 model Goal {
-  id        String   @id @default(uuid())
-  student   Student  @relation(fields: [studentId], references: [id])
+  id        String     @id @default(uuid())
+  student   Student    @relation(fields: [studentId], references: [id])
   studentId String
-  type      String   
+  type      String
   goalText  String
-  status    String   @default("pending") 
-  
-  setBy     Teacher  @relation(fields: [setById], references: [id])
+  status    GoalStatus @default(PENDING)
+
+  setBy     Teacher    @relation(fields: [setById], references: [id])
   setById   String
-  
-  createdAt DateTime @default(now())
-  
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
   @@map("goals")
 }
 
@@ -129,7 +238,8 @@ model Health {
   bmi        Float?
   visitDate  DateTime @db.Date
   remarks    String?
-  
+  createdAt  DateTime @default(now())
+
   @@map("health")
 }
 
@@ -138,37 +248,92 @@ model Achievement {
   student   Student  @relation(fields: [studentId], references: [id])
   studentId String
   title     String
-  type      String?
+  category  AchievementCategory @default(ACADEMIC)
   eventName String?
   level     String?
   date      DateTime @db.Date
   fileUrl   String?
-  
+  createdAt DateTime @default(now())
+
   @@map("achievements")
 }
 
 model AiInsight {
-  id           String   @id @default(uuid())
-  student      Student  @relation(fields: [studentId], references: [id])
-  studentId    String
-  insightType  String
-  message      String
-  createdAt    DateTime @default(now())
-  
+  id          String   @id @default(uuid())
+  student     Student  @relation(fields: [studentId], references: [id])
+  studentId   String
+  insightType String
+  message     String
+  createdAt   DateTime @default(now())
+
   @@map("ai_insights")
 }
 
-model SchoolAdmin {
-  id       String   @id @default(uuid())
-  name     String
-  email    String   @unique
-  phone    String?
-  role     String   
-  
-  school   School   @relation(fields: [schoolId], references: [id])
-  schoolId String
-  
-  @@map("school_admins")
+model Exam {
+  id             String        @id @default(uuid())
+  name           String
+  academicYear   String
+  startDate      DateTime      @db.Date
+  endDate        DateTime      @db.Date
+  weightage      Float
+  isPublished    Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+
+  school         School        @relation(fields: [schoolId], references: [id])
+  schoolId       String
+  schedules      ExamSchedule[]
+
+  @@map("exams")
+}
+
+model ExamSchedule {
+  id          String   @id @default(uuid())
+  exam        Exam     @relation(fields: [examId], references: [id])
+  examId      String
+  subject     String
+  date        DateTime @db.Date
+  startTime   String
+  endTime     String
+  room        String
+  createdAt   DateTime @default(now())
+
+  @@map("exam_schedules")
+}
+
+model Assignment {
+  id          String      @id @default(uuid())
+  title       String
+  description String?
+  subject     String
+  dueDate     DateTime
+  attachments String[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  teacher     Teacher     @relation(fields: [teacherId], references: [id])
+  teacherId   String
+  class       String
+  section     String?
+
+  submissions Submission[]
+
+  @@map("assignments")
+}
+
+model Submission {
+  id           String     @id @default(uuid())
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+  assignmentId String
+  student      Student    @relation(fields: [studentId], references: [id])
+  studentId    String
+  submittedAt  DateTime   @default(now())
+  attachments  String[]
+  grade        String?
+  feedback     String?
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([assignmentId, studentId])
+  @@map("submissions")
 }
 
 model User {
@@ -178,6 +343,7 @@ model User {
   password  String
   role      String   @default("user")
   createdAt DateTime @default(now())
-  
+  updatedAt DateTime @updatedAt
+
   @@map("users")
 }
