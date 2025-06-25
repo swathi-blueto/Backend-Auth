@@ -101,9 +101,53 @@ const findStudentsWithMarks = async (filters = {}) => {
   });
 };
 
+const searchStudents = async ({ name, class: className, section, admissionNumber }, { page, limit }) => {
+  const where = {};
+  
+  if (name) where.name = { contains: name, mode: 'insensitive' };
+  if (className) where.class = className;
+  if (section) where.section = section;
+  if (admissionNumber) where.admissionNumber = admissionNumber;
+
+  const [students, total] = await prisma.$transaction([
+    prisma.student.findMany({
+      where,
+      skip: (page - 1) * limit,
+      take: limit,
+      include: { parent: true }
+    }),
+    prisma.student.count({ where })
+  ]);
+
+  return { data: students, total };
+};
+
+const findStudentsByClassAndSection = async (className, section) => {
+  return prisma.student.findMany({
+    where: {
+      class: className,
+      section: section
+    },
+    include: {
+      parent: true,
+      marks: {
+        orderBy: {
+          date: 'desc'
+        },
+        take: 5 
+      }
+    },
+    orderBy: {
+      name: 'asc'
+    }
+  });
+};
+
 export default {
   findStudentById,
+  searchStudents,
   findStudentByNameAndNumber,
+  findStudentsByClassAndSection,
   createStudentRecord,
   updateStudentRecord,
   deleteStudentRecord,

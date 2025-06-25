@@ -58,6 +58,32 @@ const getAllStudents = async (req, res) => {
   }
 };
 
+const searchStudents = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, ...filters } = req.query;
+    const { data, total } = await studentService.searchStudents(
+      filters, 
+      { page: parseInt(page), limit: parseInt(limit) }
+    );
+
+    res.status(200).json({
+      success: true,
+      data,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (err) {
+    res.status(400).json({ 
+      success: false, 
+      message: err.message 
+    });
+  }
+};
+
 const updateStudent = async (req, res) => {
   try {
     const student = await studentService.updateStudent(req.params.id, req.body);
@@ -93,11 +119,31 @@ const getClassStudentsWithMarks = async (req, res) => {
   }
 };
 
+const getStudentsByClassAndSection = async (req, res) => {
+  try {
+    const students = await studentService.getStudentsByClassAndSection(
+      req.params.class,
+      req.params.section
+    );
+    res.status(200).json({ 
+      success: true, 
+      data: students 
+    });
+  } catch (err) {
+    res.status(404).json({ 
+      success: false, 
+      message: err.message 
+    });
+  }
+};
+
 export default {
   getClassStudentsWithMarks,
   deleteStudent,
   updateStudent,
   getAllStudents,
   getStudent,
-  createStudent
+  createStudent,
+  searchStudents,
+  getStudentsByClassAndSection
 };

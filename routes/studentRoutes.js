@@ -12,9 +12,28 @@ router.post(
 );
 router.get(
   "/",
-  validate(studentValidation.listStudentsQuery, "query"), 
+  validate(studentValidation.listStudentsQuery, "query"),
   studentController.getAllStudents
 );
+
+router.get(
+  "/search",
+  validate(studentValidation.searchStudentsQuery, "query"),
+  studentController.searchStudents
+);
+
+router.get(
+  "/class/:class/section/:section",
+  validate(studentValidation.classSectionParams, "params"),
+  studentController.getStudentsByClassAndSection
+);
+
+
+router.get(
+  '/stats/count',
+  studentController.getStudentCountStats
+);
+
 router.get(
   "/:id",
   validate(studentValidation.studentIdParam),
@@ -22,7 +41,7 @@ router.get(
 );
 router.get(
   "/class/:classId/marks",
-  validate(studentValidation.classIdParam, "params"), 
+  validate(studentValidation.classIdParam, "params"),
   studentController.getClassStudentsWithMarks
 );
 router.patch(

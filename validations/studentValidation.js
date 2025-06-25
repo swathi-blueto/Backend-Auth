@@ -52,7 +52,7 @@ export const createStudent = Joi.object({
     .default(() => new Date()),
 
   schoolId: Joi.string().uuid().optional(),
-   photoUrl:Joi.string().optional(),
+  photoUrl: Joi.string().optional(),
 });
 
 export const updateStudent = Joi.object({
@@ -64,7 +64,7 @@ export const updateStudent = Joi.object({
   section: Joi.string().optional(),
   bloodGroup: Joi.string().optional(),
   parentId: Joi.string().uuid().optional(),
-  photoUrl:Joi.string().optional(),
+  photoUrl: Joi.string().optional(),
   status: Joi.string()
     .valid(...Object.values(STUDENT_STATUS))
     .optional(),
@@ -80,6 +80,20 @@ export const listStudentsQuery = Joi.object({
     .valid(...Object.values(STUDENT_STATUS))
     .optional(),
 }).with("page", "limit");
+
+export const searchStudentsQuery = Joi.object({
+  name: Joi.string().optional().min(2).max(100),
+  class: Joi.string().optional(),
+  section: Joi.string().optional(),
+  page: Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).max(100).default(10),
+}).or("name", "class", "section");
+
+
+export const classSectionParams = Joi.object({
+  class: Joi.string().required(),
+  section: Joi.string().required()
+});
 
 export const studentIdParam = Joi.object({
   id: Joi.string().uuid().required().messages({
